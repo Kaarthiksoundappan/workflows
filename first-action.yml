@@ -1,10 +1,15 @@
-name: First GitHub Action
-on: [push]
+name: Learn GitHub Actions  
+on: [push]  # Runs when code is pushed
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  test-multiple-os:
+    runs-on: ${{ matrix.os }}  # Runs on multiple OSs
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]  # Test on all 3
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Print Hello World
-        run: echo "Hello, GitHub Actions!"
+        uses: actions/checkout@v3  # Fetch repo files
+      - name: Show current OS
+        run: echo "Running on ${{ runner.os }}"
+      - name: List repository files
+        run: ls -l  # Shows repo files (use 'dir' for Windows)
