@@ -12,6 +12,117 @@ Imagine you want to build a LEGO house:
 
 **Helm Chart** = The LEGO kit (pre-packaged application with all components and instructions)
 
+## Installing Helm
+
+Before you can use Helm, you need to install it on your machine. Here are the installation methods for different platforms:
+
+### Prerequisites
+
+- Kubernetes cluster access (optional for installation, required for using Helm)
+- Command line terminal access
+
+### Installation on Windows
+
+#### Option 1: Using Winget (Recommended for Windows 10/11)
+
+If you have Windows Package Manager (winget) installed:
+
+```powershell
+winget install Helm.Helm
+```
+
+**Note**: Winget comes pre-installed on Windows 11 and recent Windows 10 builds. If not available, install it from the [Microsoft Store](https://www.microsoft.com/p/app-installer/9nblggh4nns1).
+
+#### Option 2: Using Chocolatey
+
+If you have Chocolatey package manager:
+
+```powershell
+choco install kubernetes-helm
+```
+
+#### Option 3: Using Scoop
+
+If you have Scoop package manager:
+
+```powershell
+scoop install helm
+```
+
+#### Option 4: Manual Installation (Works on any Windows version)
+
+1. Visit the [Helm Releases page](https://github.com/helm/helm/releases)
+2. Download the latest Windows AMD64 zip file (e.g., `helm-v4.0.0-windows-amd64.zip`)
+3. Extract the zip file to a folder (e.g., `C:\Program Files\Helm\` or `C:\Users\YourName\Downloads\helm-v4.0.0-windows-amd64\windows-amd64`)
+4. Add the Helm directory to your system PATH:
+   - Open "Environment Variables" from Windows Settings
+   - Under "User variables" or "System variables", find and edit the "Path" variable
+   - Click "New" and add the full path to the folder containing `helm.exe`
+   - Click "OK" to save
+5. **Restart your terminal** (PowerShell, Command Prompt, or VSCode) for PATH changes to take effect
+
+### Installation on macOS
+
+#### Using Homebrew (Recommended)
+
+```bash
+brew install helm
+```
+
+#### Manual Installation
+
+```bash
+# Download latest release
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+```
+
+### Installation on Linux
+
+#### Using Package Manager
+
+**Debian/Ubuntu**:
+```bash
+curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+sudo apt-get install apt-transport-https --yes
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get update
+sudo apt-get install helm
+```
+
+**Red Hat/CentOS/Fedora**:
+```bash
+sudo dnf install helm
+```
+
+#### Using Snap
+
+```bash
+sudo snap install helm --classic
+```
+
+### Verify Installation
+
+After installation, verify Helm is working correctly:
+
+```bash
+helm version
+```
+
+You should see output similar to:
+```
+version.BuildInfo{Version:"v4.0.0", GitCommit:"...", GitTreeState:"clean", GoVersion:"go1.25.3"}
+```
+
+### Next Steps
+
+Once Helm is installed, you can:
+- Add chart repositories: `helm repo add <name> <url>`
+- Search for charts: `helm search repo <keyword>`
+- Install applications: `helm install <name> <chart>`
+- Get help: `helm help`
+
 ## What is a Helm Chart?
 
 A **Helm Chart** is a package that contains:
