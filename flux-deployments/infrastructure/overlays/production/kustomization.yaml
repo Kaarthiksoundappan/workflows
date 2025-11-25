@@ -10,3 +10,7 @@ patches:
     target:
       kind: HelmRelease
       name: ingress-nginx
+  - path: wiz-sensor-patch.yaml
+    target:
+      kind: HelmRelease
+      name: wiz-sensor

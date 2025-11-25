@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wiz-system
+  labels:
+    app.kubernetes.io/managed-by: flux
+    app.kubernetes.io/name: wiz-sensor
+    purpose: security

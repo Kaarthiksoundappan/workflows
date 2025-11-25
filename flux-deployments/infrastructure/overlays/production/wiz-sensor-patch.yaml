@@ -1,0 +1,61 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: wiz-sensor
+  namespace: wiz-system
+spec:
+  values:
+    # Production environment configuration
+
+    # Enhanced resources for production
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+    # Production-specific settings
+    # Add your Wiz connector configuration here
+    # connector:
+    #   id: "prod-connector-id"
+    #   secret: "prod-secret"  # Use sealed-secrets or external-secrets
+
+    # Logging level for production
+    logLevel: warn
+
+    # Frequent scans for production
+    scanInterval: "15m"
+
+    # High availability settings
+    replicaCount: 2
+
+    # Pod disruption budget
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+
+    # Priority class for production
+    priorityClassName: system-cluster-critical
+
+    # Tolerations for dedicated nodes if needed
+    # tolerations:
+    #   - key: "security"
+    #     operator: "Equal"
+    #     value: "wiz"
+    #     effect: "NoSchedule"
+
+    # Node affinity for production
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                - wiz-sensor
+            topologyKey: kubernetes.io/hostname

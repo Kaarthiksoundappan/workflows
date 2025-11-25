@@ -3,3 +3,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - nginx-ingress.yaml
+  - wiz-helm-repository.yaml
+  - wiz-sensor-namespace.yaml
+  - wiz-sensor-helmrelease.yaml

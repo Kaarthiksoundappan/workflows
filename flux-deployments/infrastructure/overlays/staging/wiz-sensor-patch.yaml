@@ -1,0 +1,29 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: wiz-sensor
+  namespace: wiz-system
+spec:
+  values:
+    # Staging environment configuration
+
+    # Standard resources for staging
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+    # Staging-specific settings
+    # Add your Wiz connector configuration here
+    # connector:
+    #   id: "staging-connector-id"
+    #   secret: "staging-secret"  # Use sealed-secrets or external-secrets
+
+    # Logging level for staging
+    logLevel: info
+
+    # Moderate scan frequency for staging
+    scanInterval: "30m"

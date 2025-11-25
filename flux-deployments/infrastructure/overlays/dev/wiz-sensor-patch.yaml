@@ -1,0 +1,29 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: wiz-sensor
+  namespace: wiz-system
+spec:
+  values:
+    # Development environment configuration
+
+    # Reduced resources for dev
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+    # Dev-specific settings
+    # Add your Wiz connector configuration here
+    # connector:
+    #   id: "dev-connector-id"
+    #   secret: "dev-secret"  # Use sealed-secrets or external-secrets
+
+    # Logging level for dev
+    logLevel: debug
+
+    # Less frequent scans for dev
+    scanInterval: "1h"
