@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infrastructure
+  labels:
+    app.kubernetes.io/managed-by: flux
+    environment: base
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/managed-by: flux
+    purpose: monitoring
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress
+  labels:
+    app.kubernetes.io/managed-by: flux
+    purpose: ingress

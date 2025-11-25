@@ -1,0 +1,48 @@
+# Production Cluster Flux Configuration
+# This file is used to bootstrap Flux on the production cluster
+
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  interval: 10m0s
+  ref:
+    branch: main
+  url: https://github.com/<your-org>/<your-repo>
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infrastructure-production
+  namespace: flux-system
+spec:
+  interval: 30m0s
+  path: ./flux-deployments/infrastructure/overlays/production
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  timeout: 15m0s
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2beta1
+      kind: HelmRelease
+      name: ingress-nginx
+      namespace: ingress-nginx
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: apps-production
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: infrastructure-production
+  interval: 30m0s
+  path: ./flux-deployments/apps/overlays/production
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  timeout: 15m0s

@@ -1,0 +1,13 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+spec:
+  values:
+    controller:
+      replicaCount: 1  # Reduced for dev
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
