@@ -26,6 +26,8 @@ spec:
         secret:
           create: false
           name: wiz-api-token
+      imagePullSecrets:
+        - name: aks-gitops-wiz
 
     wiz-kubernetes-connector:
       enabled: true
