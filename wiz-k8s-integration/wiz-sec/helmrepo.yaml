@@ -6,6 +6,6 @@ metadata:
 spec:
   interval: 10m
   type: oci
-  url: oci://acrpltsrv.azurecr.io/wiz
+  url: oci://<your-acr-name>.azurecr.io/wiz
   secretRef:
     name: aks-gitops-wiz
