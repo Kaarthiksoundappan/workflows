@@ -33,7 +33,7 @@ spec:
       enabled: true
       autoCreateConnector:
         clusterFlavor: AKS
-      Wiz-broker:
+      wiz-broker:
         enabled: true
 
     wiz-admission-controller:
