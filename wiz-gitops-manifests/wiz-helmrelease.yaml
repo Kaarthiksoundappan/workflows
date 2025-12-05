@@ -1,0 +1,64 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: wiz-integration
+  namespace: wiz
+spec:
+  interval: 10m
+  timeout: 10m
+  chart:
+    spec:
+      chart: wiz-kubernetes-integration
+      version: 0.2.139  # Update to your desired version or use ">= 0.0.0" for latest
+      sourceRef:
+        kind: HelmRepository
+        name: wiz-sec
+        namespace: wiz
+      interval: 10m
+  install:
+    createNamespace: false  # Namespace already exists
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    global:
+      wizApiToken:
+        secret:
+          create: false
+          name: wiz-api-token
+      httpProxyConfiguration:
+        enabled: false
+        create: false
+      # ACR pull secrets configuration
+      # Replace 'acr-credentials' with the actual name of your ACR secret
+      imagePullSecrets:
+        - name: acr-credentials
+    wiz-kubernetes-connector:
+      enabled: true
+      wizApiToken:
+        secret:
+          create: false
+          name: wiz-api-token
+      autoCreateConnector:
+        clusterFlavor: AKS
+      Wiz-broker:
+        enabled: true
+    wiz-admission-controller:
+      enabled: true
+      wizApiToken:
+        secret:
+          create: false
+          name: wiz-api-token
+      kubernetesAuditLogsWebhook:
+        enabled: true
+    wiz-sensor:
+      wizApiToken:
+        secret:
+          create: false
+          name: wiz-api-token
+      imagePullSecret:
+        required: true
+        create: false
+        name: acr-credentials

@@ -1,0 +1,228 @@
+{
+  "name": "Expense Schedule",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6d0200ab-fd82-4396-8da5-655ba67c8764",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1YUMQwLamp_tJ2aolMctMOhiygqchs-Eph4dPTDoiYk8",
+          "mode": "list",
+          "cachedResultName": "Expense Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YUMQwLamp_tJ2aolMctMOhiygqchs-Eph4dPTDoiYk8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YUMQwLamp_tJ2aolMctMOhiygqchs-Eph4dPTDoiYk8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "3c5c6548-9b49-426f-88aa-b21bbd12913d",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "s8sEk2fyuhTnpgHh",
+          "name": "Google Sheets contact@Forge"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "eb39b4f9-4be2-40f2-a666-39fdd33495a0",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "f9d892dd-529d-4398-8b63-0ddc12ead384",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "565738016632106",
+        "recipientPhoneNumber": "={{ $json['Mobile Number'] }}",
+        "textBody": "=📊 Your Expense Summary – {{$now.format('dd/MM/yyyy')}}\n\nYou have no recorded expenses for today. 😊\n\nNext time you make a payment, just send me a screenshot or photo of the receipt, and I’ll track it for you. 🧾",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "4ceebc89-23af-4b71-a08d-650dc5f79cef",
+      "name": "Send no expense message",
+      "webhookId": "440a6ae3-69b1-4a1c-80db-08befe3d8f75",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lL1GgrllRKYWJV0E",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all incoming items\nconst items = $input.all();\n\nif (items.length === 0) {\n\treturn [\n\t\t{\n\t\t\tjson: {\n\t\t\t\ttext: \"No expenses found for today.\",\n\t\t\t},\n\t\t},\n\t];\n}\n\n// Helper: month names for formatting date\nconst monthNames = [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"];\n\n// Use the date from the first item to build the header date\nconst firstDateStr = items[0].json[\"Date\"]; // e.g. \"27/11/2025\" (DD/MM/YYYY)\nlet headerDateFormatted = firstDateStr;\n\ntry {\n\tconst [dayStr, monthStr, yearStr] = firstDateStr.split(\"/\");\n\tconst day = parseInt(dayStr, 10);\n\tconst monthIndex = parseInt(monthStr, 10) - 1;\n\tconst year = parseInt(yearStr, 10);\n\n\theaderDateFormatted = `${day.toString().padStart(2, \"0\")} ${monthNames[monthIndex]} ${year}`;\n} catch (e) {\n\t// If parsing fails, just leave the original string\n}\n\n// Emojis for numbering\nconst indexEmojis = [\"1️⃣\", \"2️⃣\", \"3️⃣\", \"4️⃣\", \"5️⃣\", \"6️⃣\", \"7️⃣\", \"8️⃣\", \"9️⃣\", \"🔟\"];\n\nlet total = 0;\nconst lines = [];\n\nfor (let i = 0; i < items.length; i++) {\n\tconst data = items[i].json;\n\n\tconst desc = data[\"To / Description\"] || \"Unknown\";\n\tconst paidFrom = data[\"Paid From\"] || \"Unknown\";\n\tconst rawAmount = data[\"Amount\"];\n\n\tlet amountNumber = 0;\n\tlet amountDisplay = rawAmount;\n\n\t// Handle amount as string like \"₹2,000\" or number like 2000\n\tif (typeof rawAmount === \"number\") {\n\t\tamountNumber = rawAmount;\n\t\tamountDisplay = \"₹\" + rawAmount.toLocaleString(\"en-IN\");\n\t} else if (typeof rawAmount === \"string\") {\n\t\tconst parsed = parseFloat(rawAmount.replace(/[^\\d.]/g, \"\"));\n\t\tif (!isNaN(parsed)) {\n\t\t\tamountNumber = parsed;\n\t\t}\n\t\t// Keep the original for display (₹2,000 style)\n\t\tamountDisplay = rawAmount.trim();\n\t}\n\n\ttotal += amountNumber;\n\n\t// Time: convert \"15:03\" → \"3:03 PM\"\n\tconst time24 = data[\"Time\"] || \"\";\n\tlet timeDisplay = time24;\n\n\tif (time24.includes(\":\")) {\n\t\tconst [hStr, mStr] = time24.split(\":\");\n\t\tlet h = parseInt(hStr, 10);\n\t\tconst m = mStr;\n\t\tif (!isNaN(h)) {\n\t\t\tlet suffix = \"AM\";\n\t\t\tif (h === 0) {\n\t\t\t\th = 12;\n\t\t\t\tsuffix = \"AM\";\n\t\t\t} else if (h === 12) {\n\t\t\t\tsuffix = \"PM\";\n\t\t\t} else if (h > 12) {\n\t\t\t\th = h - 12;\n\t\t\t\tsuffix = \"PM\";\n\t\t\t}\n\t\t\ttimeDisplay = `${h}:${m} ${suffix}`;\n\t\t}\n\t}\n\n\tconst emoji = indexEmojis[i] || `${i + 1}.`;\n\n\t// Build each line like:\n\t// 1️⃣ ₹2,000 – Langhub LLP – RAJADURAI D (Canara Bank) – 3:03 PM\n\tlines.push(\n\t\t`${emoji} ${amountDisplay} – ${desc} – ${paidFrom} – ${timeDisplay}`\n\t);\n}\n\n// Format total in Indian style\nconst totalDisplay = \"₹\" + total.toLocaleString(\"en-IN\");\n\n// Final message text\nconst text = \n`📊 Your Expense Summary – ${headerDateFormatted}\n\nHere are your expenses for today:\n${lines.join(\"\\n\")}\n\n💵 Total spent today: ${totalDisplay}\n\n📷 Keep sending your receipt images here, I’ll keep tracking everything for you. ✅`;\n\nreturn [\n\t{\n\t\tjson: {\n\t\t\ttext,\n\t\t},\n\t},\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        96
+      ],
+      "id": "93f191b8-45fc-41f6-894c-fdcba268050d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "565738016632106",
+        "recipientPhoneNumber": "=+{{ $('Get row(s) in sheet').first().json['Mobile Number'] }}",
+        "textBody": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        96
+      ],
+      "id": "32faec92-c790-409c-ad80-5ad5c081b823",
+      "name": "Send summary message",
+      "webhookId": "cca862c4-bbab-477f-b2bd-08276742c0cf",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lL1GgrllRKYWJV0E",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send no expense message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send summary message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "c69a5c57-d140-4b17-840b-781955b389f2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "68aa8f5167608c6b5afee3b968be4726e841213c8d18a3c66cddf36d2bf3bb5a"
+  },
+  "id": "QLbGccCXjGO3w8BZ",
+  "tags": [
+    {
+      "updatedAt": "2025-03-19T18:28:36.886Z",
+      "createdAt": "2025-03-19T18:28:36.886Z",
+      "id": "xWn1tSWkEl41XVhY",
+      "name": "For Video"
+    }
+  ]
+}

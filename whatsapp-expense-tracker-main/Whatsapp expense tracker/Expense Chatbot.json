@@ -1,0 +1,687 @@
+{
+  "name": "Expense Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messages[0].text.body }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "57892a8a-a136-45fa-859b-888bdaac31cc"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "31bbb378-f773-4448-88a6-573a18a93ad2",
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -1232,
+        272
+      ],
+      "id": "964aecaa-9011-4437-b8c0-4aa2e3da9640",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "565738016632106",
+        "recipientPhoneNumber": "=+{{ $('When Executed by Another Workflow').first().json.contacts[0].wa_id }}",
+        "textBody": "=👋 Hi! I’m your Expense Tracker Agent.\n\n📷 Just send me a screenshot or photo of any payment/receipt (UPI, bank transfer, bill, card slip, etc.).\n\nI’ll:\n* 🔍 Read the payment details\n* 🧾 Add it to your expense list for today\n* 📊 Send you a summary of today’s expenses at 6:00 PM\n\nWhenever you’re ready, send your first receipt image. 😊\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1008,
+        96
+      ],
+      "id": "212d2451-37ab-4229-9484-8500364a7c1a",
+      "name": "Send message",
+      "webhookId": "56c953a0-ee38-4363-9eaa-df17dfb29324",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lL1GgrllRKYWJV0E",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "565738016632106",
+        "recipientPhoneNumber": "=+{{ $('When Executed by Another Workflow').item.json.contacts[0].wa_id }}",
+        "textBody": "=📷 Got your receipt image.\n🔍 Give me a second, I’m reading the details…",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1008,
+        288
+      ],
+      "id": "6e70dad0-9346-47b4-9f50-699142576fb0",
+      "name": "Send processing message",
+      "webhookId": "21cff439-80ce-4f25-a09c-39f45cdba4f8",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lL1GgrllRKYWJV0E",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaUrlGet",
+        "mediaGetId": "={{ $('When Executed by Another Workflow').first().json.messages[0].image.id }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -784,
+        288
+      ],
+      "id": "dcc35e2b-6461-40ad-9b5b-6ac128598699",
+      "name": "Download media",
+      "webhookId": "a3ba7ff3-4745-49c3-8dd2-f3b98a1b644f",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lL1GgrllRKYWJV0E",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -560,
+        288
+      ],
+      "id": "6739f5e9-b7d4-4a4a-a01a-3a499c47e4e1",
+      "name": "Download image",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "GtOuqsamNeLSrHBe",
+          "name": "Whatsapp Bearer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "565738016632106",
+        "recipientPhoneNumber": "=+{{ $('When Executed by Another Workflow').first().json.contacts[0].wa_id }}",
+        "textBody": "=✅ Done!\nThis expense has been saved to your list for today. 🧾\n\nYou can:\n* 📷 Send another receipt image\n* 🕕 Wait for your 6:00 PM summary of today’s expenses",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -784,
+        480
+      ],
+      "id": "13ce5ba3-8270-43a8-80d3-5220ba7e2733",
+      "name": "Expense saving confirmation",
+      "webhookId": "63db65da-80b4-4d84-b470-1996a67a904d",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lL1GgrllRKYWJV0E",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messages[0].interactive.button_reply.id }}",
+                    "rightValue": "=yes_save_it",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "056ab00f-289e-4640-8b86-a7b850944937"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4c1b72ad-5004-44aa-9bef-d11750178d2a",
+                    "leftValue": "={{ $json.messages[0].interactive.button_reply.id }}",
+                    "rightValue": "no_dont_save",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -1008,
+        576
+      ],
+      "id": "02a1c283-67c7-46ad-9a0e-7d61b804b08b",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "565738016632106",
+        "recipientPhoneNumber": "=+{{ $('When Executed by Another Workflow').first().json.contacts[0].wa_id }}",
+        "textBody": "=❌ Okay, I’ve not saved this receipt.\n\nYou can send another receipt image whenever you want. 📷",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -784,
+        672
+      ],
+      "id": "a68af8b5-7d7b-4119-94df-80e8ce96443a",
+      "name": "Expense ignore message",
+      "webhookId": "63db65da-80b4-4d84-b470-1996a67a904d",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lL1GgrllRKYWJV0E",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1456,
+        288
+      ],
+      "id": "022ea542-8160-464e-8591-4e68838d3ca6",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('When Executed by Another Workflow').first().json.metadata.phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('When Executed by Another Workflow').first().json.contacts[0].wa_id }}\",\n  \"type\": \"interactive\",\n  \"interactive\": {\n    \"type\": \"button\",\n    \"body\": {\n      \"text\": \"Here’s what I found from this payment 👇\\n\\n🧾 To / Description: {{ $json['To / Description'] }}\\n💰 Amount: {{ $json.Amount }}\\n💳 Paid From: {{ $json['Paid From'] }}\\n📅 Date & Time: {{ $('Information Extractor').item.json.output['Date & Time'] }}\\n🔁 Transaction ID: {{ $json['Transaction ID'] }}\\n\\n✅ Do you want me to save this to your expense list for today?\"\n    },\n    \"action\": {\n      \"buttons\": [\n        {\n          \"type\": \"reply\",\n          \"reply\": {\n            \"id\": \"yes_save_it\",\n            \"title\": \"✅ Yes, save it\"\n          }\n        },\n        {\n          \"type\": \"reply\",\n          \"reply\": {\n            \"id\": \"no_dont_save\",\n            \"title\": \"❌ No, don’t save\"\n          }\n        }\n      ]\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        464,
+        288
+      ],
+      "id": "4d537a37-7b3f-4ed6-b51f-7640994edcdc",
+      "name": "Detail confirmation",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "GtOuqsamNeLSrHBe",
+          "name": "Whatsapp Bearer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.content.parts[0].text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "To / Description",
+              "description": "The person or entity to whom the transaction is made for.",
+              "required": true
+            },
+            {
+              "name": "Amount",
+              "description": "The amount paid in this transaction, return o is not able to retrieve",
+              "required": true
+            },
+            {
+              "name": "Paid From",
+              "description": "The account from which the current transaction is carried forward",
+              "required": true
+            },
+            {
+              "name": "Date & Time",
+              "description": "The Date and time of the transaction, return in dd/MM/yyyy HH:mm format",
+              "required": true
+            },
+            {
+              "name": "Transaction ID",
+              "description": "The transaction ID of the transaction, the picture is generally an UPI payment. return empty string if not found",
+              "required": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        288
+      ],
+      "id": "4a44d3b7-7e00-4071-9090-bb873c44b9af",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        512
+      ],
+      "id": "3110a0a6-e801-4144-a08e-8c26975b500d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Xh3zFGiKLCEqzHWS",
+          "name": "Contact @Google Gemini account API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "Retrieve all the text in this picture",
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        288
+      ],
+      "id": "16db4215-cef8-4010-9922-b885d0f5e8f0",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Xh3zFGiKLCEqzHWS",
+          "name": "Contact @Google Gemini account API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1YUMQwLamp_tJ2aolMctMOhiygqchs-Eph4dPTDoiYk8",
+          "mode": "list",
+          "cachedResultName": "Expense Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YUMQwLamp_tJ2aolMctMOhiygqchs-Eph4dPTDoiYk8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1k81NAehV7vFOYgE6X7kwN42zqCOa8hdZxE-taJSzcsw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Mobile Number": "={{ $('When Executed by Another Workflow').first().json.contacts[0].wa_id }}",
+            "To / Description": "={{ $json.output['To / Description'] }}",
+            "Amount": "={{ $json.output.Amount }}",
+            "Transaction ID": "={{ $json.output['Transaction ID'] }}",
+            "Paid From": "={{ $json.output['Paid From'] }}",
+            "Date": "={{ $json.output['Date & Time'].split(' ')[0] }}",
+            "Time": "={{ $json.output['Date & Time'].split(' ')[1] }}"
+          },
+          "matchingColumns": [
+            "Mobile Number"
+          ],
+          "schema": [
+            {
+              "id": "Mobile Number",
+              "displayName": "Mobile Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "To / Description",
+              "displayName": "To / Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Paid From",
+              "displayName": "Paid From",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Transaction ID",
+              "displayName": "Transaction ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        240,
+        288
+      ],
+      "id": "451f552f-db18-4982-9cb9-ccf1e5e02bf8",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "s8sEk2fyuhTnpgHh",
+          "name": "Google Sheets contact@Forge"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send processing message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send processing message": {
+      "main": [
+        [
+          {
+            "node": "Download media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download media": {
+      "main": [
+        [
+          {
+            "node": "Download image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download image": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Expense saving confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Expense ignore message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expense ignore message": {
+      "main": [
+        []
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Detail confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4e5694ce-a393-487b-8c3e-a6a02311683f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "68aa8f5167608c6b5afee3b968be4726e841213c8d18a3c66cddf36d2bf3bb5a"
+  },
+  "id": "IQj2N8gLYdkBAWeO",
+  "tags": [
+    {
+      "updatedAt": "2025-03-19T18:28:36.886Z",
+      "createdAt": "2025-03-19T18:28:36.886Z",
+      "id": "xWn1tSWkEl41XVhY",
+      "name": "For Video"
+    }
+  ]
+}

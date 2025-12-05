@@ -1,0 +1,9 @@
+dependencies:
+- name: wiz-broker
+  repository: https://wiz-sec.github.io/charts
+  version: 3.0.0
+- name: wiz-common
+  repository: https://wiz-sec.github.io/charts
+  version: 0.1.9
+digest: sha256:1287eaf52770fb81080a3b44afcb47a5022cd5ea3ec301e847c3262087658e56
+generated: "2025-12-04T04:07:12.212874694Z"

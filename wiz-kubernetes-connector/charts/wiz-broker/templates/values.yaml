@@ -1,0 +1,17 @@
+global:
+   wizApiToken:
+     secret:
+        create: false
+        name: wiz-api-token
+
+wiz-kubernetes-connector:
+  enabled: true
+  autoCreateConnector:
+    clusterFlavor: AKS
+  wiz-broker:
+    enabled: true
+
+wiz-admission-controller:
+  enabled: true
+  kubernetesAuditLogsWebhook:
+    enabled: true

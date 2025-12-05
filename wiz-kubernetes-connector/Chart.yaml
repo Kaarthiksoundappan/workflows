@@ -1,0 +1,14 @@
+apiVersion: v2
+appVersion: "2.9"
+dependencies:
+- condition: wiz-broker.enabled
+  name: wiz-broker
+  repository: https://wiz-sec.github.io/charts
+  version: 2.5.1
+- name: wiz-common
+  repository: https://wiz-sec.github.io/charts
+  version: 0.1.9
+description: A Helm chart for connecting Kubernetes clusters to Wiz
+name: wiz-kubernetes-connector
+type: application
+version: 3.5.1

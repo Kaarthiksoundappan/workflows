@@ -1,0 +1,9 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: wiz-sec
+  namespace: wiz
+spec:
+  interval: 10m
+  type: default
+  url: https://charts.wiz.io

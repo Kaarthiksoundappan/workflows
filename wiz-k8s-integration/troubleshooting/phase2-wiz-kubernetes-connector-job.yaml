@@ -1,0 +1,120 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    rollme.brokerHash: 115ba85431eeaf8db3ff2173aee02d16e67df1555d5e1ef74cfa7ac0d812cab2
+    rollme.proxyHash: 7913f001e00a2427a96d0f28eb99f4f0192a9116857b4487931ea25bcb485f2a
+    rollme.wizApiTokenHash: ce8124bc1b0fbc0cb5cd47338ca0c7d5f5446d79936e443a201d96b192a7bd65
+  creationTimestamp: "2025-12-03T12:07:24Z"
+  generation: 1
+  labels:
+    app.kubernetes.io/instance: wiz-kubernetes-integration
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: wiz-kubernetes-connector
+    app.kubernetes.io/version: "2.9"
+    helm.sh/chart: wiz-kubernetes-connector-3.5.1
+  name: wiz-kubernetes-connector-create-connector
+  namespace: wiz
+  resourceVersion: "1608045066"
+  uid: 1e87e842-7c83-466c-9435-d6c4cc601bd9
+spec:
+  backoffLimit: 1
+  completionMode: NonIndexed
+  completions: 1
+  manualSelector: true
+  parallelism: 1
+  podReplacementPolicy: TerminatingOrFailed
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: wiz-kubernetes-integration
+      app.kubernetes.io/name: wiz-kubernetes-connector
+  suspend: false
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/instance: wiz-kubernetes-integration
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: wiz-kubernetes-connector
+        app.kubernetes.io/version: "2.9"
+        helm.sh/chart: wiz-kubernetes-connector-3.5.1
+        wiz.io/component: create-kubernetes-connector
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - arm64
+                - amd64
+      containers:
+      - args:
+        - create-kubernetes-connector
+        - --api-server-endpoint
+        - https://kubernetes.default.svc.cluster.local
+        - --secrets-namespace
+        - wiz
+        - --service-account-token-secret-name
+        - wiz-cluster-reader-token
+        - --output-secret-name
+        - wiz-kubernetes-integration-connector
+        - --is-on-prem=true
+        - --service-type
+        - AKS
+        - --wait=false
+        command:
+        - wiz-broker
+        env:
+        - name: CLI_FILES_AS_ARGS
+          value: /var/api-client/clientToken,/var/api-client/clientId
+        - name: LOG_LEVEL
+          value: info
+        - name: WIZ_ENV
+        image: wiziopublic.azurecr.io/wiz-app/wiz-broker:2.9
+        imagePullPolicy: Always
+        name: wiz-connector-creator
+        resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 10000
+          runAsNonRoot: true
+          runAsUser: 10000
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/api-client
+          name: api-client
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10000
+      serviceAccount: wiz-auto-modify-connector
+      serviceAccountName: wiz-auto-modify-connector
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: api-client
+        secret:
+          defaultMode: 420
+          secretName: wiz-api-token
+  ttlSecondsAfterFinished: 60
+status:
+  ready: 0
+  startTime: "2025-12-03T13:03:01Z"
+  terminating: 0
+  uncountedTerminatedPods: {}
