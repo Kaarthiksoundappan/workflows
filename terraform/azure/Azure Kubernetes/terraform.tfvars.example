@@ -1,0 +1,44 @@
+# Copy this file to terraform.tfvars and customize the values
+
+# Required Variables
+resource_group_name = "rg-aks-example"
+cluster_name        = "aks-cluster-example"
+dns_prefix          = "aks-example"
+
+# Azure Region
+location = "East US"
+
+# Kubernetes Version
+kubernetes_version = "1.28"
+
+# System Node Pool Configuration
+system_node_count = 3
+system_node_size  = "Standard_D2s_v3"
+
+# Auto-scaling Configuration
+enable_auto_scaling = true
+min_node_count      = 1
+max_node_count      = 5
+
+# User Node Pool (optional)
+create_user_node_pool = false
+user_node_count       = 2
+user_node_size        = "Standard_D2s_v3"
+
+# Network Configuration
+vnet_address_space    = "10.0.0.0/16"
+subnet_address_prefix = "10.0.1.0/24"
+service_cidr          = "10.1.0.0/16"
+dns_service_ip        = "10.1.0.10"
+
+# Monitoring and Policy
+enable_log_analytics = true
+enable_azure_policy  = false
+
+# Tags
+tags = {
+  Environment = "Development"
+  Project     = "AKS Example"
+  ManagedBy   = "Terraform"
+  Owner       = "DevOps Team"
+}
