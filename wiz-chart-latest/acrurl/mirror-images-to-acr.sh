@@ -1,21 +1,20 @@
 #!/bin/bash
 # Script to mirror Wiz Kubernetes Integration images to Azure Container Registry
-# Version: 1.1 for wiz-kubernetes-integration v0.2.142
+# Version: 2.0 for wiz-kubernetes-integration v0.2.142
 #
 # Usage:
-#   1. Configure ACR credentials below
-#   2. Make executable: chmod +x mirror-images-to-acr.sh
-#   3. Run: ./mirror-images-to-acr.sh
+#   1. Login to Azure: az login
+#   2. Configure ACR name below
+#   3. Make executable: chmod +x mirror-images-to-acr.sh
+#   4. Run: ./mirror-images-to-acr.sh
 #
-# ACR Authentication Methods:
-#   Method 1 (Recommended): Docker login with username/password
-#     - Get credentials: az acr credential show -n <acr-name>
-#     - Or enable admin: az acr update -n <acr-name> --admin-enabled true
-#     - Set ACR_USERNAME and ACR_PASSWORD below
+# This script uses 'az acr import' to mirror images directly between registries
+# without requiring Docker daemon. This is faster and more reliable.
 #
-#   Method 2: Azure CLI (may not work with recent Azure CLI versions)
-#     - Set ACR_USE_AZ_LOGIN=true
-#     - Run: az login && az acr login --name <acr-name>
+# Requirements:
+#   - Azure CLI installed and logged in
+#   - Appropriate permissions on target ACR (AcrPush role or Owner)
+#   - For private Wiz images: Credentials from Wiz support
 #
 
 set -e  # Exit on error
@@ -27,17 +26,9 @@ set -e  # Exit on error
 # Your Azure Container Registry name (without .azurecr.io)
 ACR_NAME="your-acr-name"
 
-# ACR authentication credentials
-# Method 1: Username + Password/Token (recommended for recent Azure CLI versions)
-ACR_USERNAME=""           # Service principal or admin username
-ACR_PASSWORD=""           # Password or refresh token
-
-# Method 2: Auto-fetch token using Azure CLI (requires 'az login')
-# If ACR_USERNAME and ACR_PASSWORD are empty, script will attempt to use 'az acr login'
-ACR_USE_AZ_LOGIN=false    # Set to true to use 'az acr login' (may not work in recent versions)
-
-# Wiz sensor registry credentials (obtain from Wiz support)
-# These are required to pull from wizio.azurecr.io (private registry)
+# Wiz private registry credentials (obtain from Wiz support)
+# Required for importing private sensor images from wizio.azurecr.io
+# Leave empty to skip private images
 WIZ_SENSOR_USERNAME=""
 WIZ_SENSOR_PASSWORD=""
 
@@ -99,12 +90,19 @@ print_warning() {
 check_prerequisites() {
   print_header "Checking Prerequisites"
 
-  # Check if docker is installed
-  if ! command -v docker &> /dev/null; then
-    print_error "Docker is not installed. Install from: https://docs.docker.com/get-docker/"
+  # Check if az CLI is installed
+  if ! command -v az &> /dev/null; then
+    print_error "Azure CLI (az) is not installed. Install from: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
     exit 1
   fi
-  print_info "Docker: Installed"
+  print_info "Azure CLI: Installed"
+
+  # Check Azure login
+  if ! az account show &> /dev/null; then
+    print_error "Not logged in to Azure. Run: az login"
+    exit 1
+  fi
+  print_success "Azure CLI: Logged in"
 
   # Validate ACR name
   if [ "$ACR_NAME" = "your-acr-name" ]; then
@@ -113,79 +111,30 @@ check_prerequisites() {
   fi
   print_info "ACR Name: $ACR_NAME"
 
-  # Check authentication method
-  if [ "$ACR_USE_AZ_LOGIN" = true ]; then
-    # Check if az CLI is installed and logged in
-    if ! command -v az &> /dev/null; then
-      print_error "Azure CLI (az) is not installed. Install from: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
-      exit 1
-    fi
-    print_info "Azure CLI: Installed"
-
-    if ! az account show &> /dev/null; then
-      print_error "Not logged in to Azure. Run: az login"
-      exit 1
-    fi
-    print_success "Azure CLI: Logged in"
-    print_info "ACR Auth Method: az acr login"
-  else
-    # Using docker login with credentials
-    if [ -z "$ACR_USERNAME" ] || [ -z "$ACR_PASSWORD" ]; then
-      print_error "ACR_USERNAME and ACR_PASSWORD must be set in configuration"
-      print_error "Or set ACR_USE_AZ_LOGIN=true to use Azure CLI authentication"
-      print_info ""
-      print_info "To get ACR credentials:"
-      print_info "  1. Enable admin user: az acr update -n $ACR_NAME --admin-enabled true"
-      print_info "  2. Get credentials: az acr credential show -n $ACR_NAME"
-      print_info "  Or use service principal credentials"
-      exit 1
-    fi
-    print_info "ACR Auth Method: docker login (username/password)"
+  # Check ACR exists and we have access
+  print_info "Verifying ACR access..."
+  if ! az acr show --name "$ACR_NAME" &> /dev/null; then
+    print_error "Cannot access ACR '$ACR_NAME'. Check name and permissions."
+    exit 1
   fi
+  print_success "ACR access verified"
 
   echo ""
 }
 
-login_to_registries() {
-  print_header "Logging into Container Registries"
+check_wiz_credentials() {
+  print_header "Checking Wiz Credentials"
 
-  # Login to ACR
-  print_info "Logging into ACR: $ACR_NAME.azurecr.io"
-
-  if [ "$ACR_USE_AZ_LOGIN" = true ]; then
-    # Use Azure CLI method (may not work in recent versions)
-    if az acr login --name "$ACR_NAME" 2>&1; then
-      print_success "Logged into ACR via Azure CLI"
-    else
-      print_error "az acr login failed. Consider using docker login method instead."
-      print_info "Set ACR_USE_AZ_LOGIN=false and provide ACR_USERNAME and ACR_PASSWORD"
-      exit 1
-    fi
-  else
-    # Use docker login with credentials (works with recent Azure CLI)
-    print_info "Using docker login with provided credentials"
-    echo "$ACR_PASSWORD" | docker login "${ACR_NAME}.azurecr.io" \
-      --username "$ACR_USERNAME" \
-      --password-stdin
-
-    if [ $? -eq 0 ]; then
-      print_success "Logged into ACR via docker login"
-    else
-      print_error "docker login to ACR failed. Check your credentials."
-      exit 1
-    fi
-  fi
-
-  # Login to Wiz private registry if credentials provided
+  # Check if Wiz credentials are provided for private images
   if [ -n "$WIZ_SENSOR_USERNAME" ] && [ -n "$WIZ_SENSOR_PASSWORD" ]; then
-    print_info "Logging into Wiz private registry: wizio.azurecr.io"
-    echo "$WIZ_SENSOR_PASSWORD" | docker login wizio.azurecr.io \
-      --username "$WIZ_SENSOR_USERNAME" \
-      --password-stdin
-    print_success "Logged into Wiz private registry"
+    print_success "Wiz sensor credentials provided"
+    print_info "Private images (sensor, workload-scanner) will be imported"
   else
-    print_warning "Wiz sensor credentials not provided. Private images will be skipped."
-    print_warning "Obtain credentials from Wiz support to mirror sensor images."
+    print_warning "Wiz sensor credentials not provided"
+    print_warning "Private images will be skipped"
+    print_info "To import sensor images:"
+    print_info "  1. Contact Wiz support for wizio.azurecr.io credentials"
+    print_info "  2. Set WIZ_SENSOR_USERNAME and WIZ_SENSOR_PASSWORD in this script"
   fi
 
   echo ""
@@ -194,16 +143,23 @@ login_to_registries() {
 import_image_via_acr() {
   local name=$1
   local source=$2
+  local is_private=$3  # true/false indicating if source is private
   local target="${ACR_NAME}.azurecr.io/${TARGET_PREFIX}/${name}"
 
-  print_info "Importing: $source -> $target"
+  print_info "Importing: $source"
+  print_info "Target: $target"
 
-  if az acr import \
-    --name "$ACR_NAME" \
-    --source "$source" \
-    --image "${TARGET_PREFIX}/${name}" \
-    --force \
-    2>&1; then
+  # Build az acr import command
+  local import_cmd="az acr import --name $ACR_NAME --source $source --image ${TARGET_PREFIX}/${name} --force"
+
+  # Add credentials if importing from private registry
+  if [ "$is_private" = "true" ] && [ -n "$WIZ_SENSOR_USERNAME" ] && [ -n "$WIZ_SENSOR_PASSWORD" ]; then
+    import_cmd="$import_cmd --username $WIZ_SENSOR_USERNAME --password $WIZ_SENSOR_PASSWORD"
+    print_info "Using Wiz credentials for private image"
+  fi
+
+  # Execute import
+  if eval $import_cmd 2>&1; then
     print_success "Imported: $name"
     return 0
   else
@@ -212,37 +168,8 @@ import_image_via_acr() {
   fi
 }
 
-mirror_image_via_docker() {
-  local name=$1
-  local source=$2
-  local target="${ACR_NAME}.azurecr.io/${TARGET_PREFIX}/${name}"
-
-  print_info "Mirroring via Docker: $source"
-
-  # Pull source image
-  if ! docker pull "$source"; then
-    print_error "Failed to pull: $source"
-    return 1
-  fi
-
-  # Tag for target registry
-  docker tag "$source" "$target"
-
-  # Push to ACR
-  if docker push "$target"; then
-    print_success "Pushed: $target"
-
-    # Clean up local images
-    docker rmi "$source" "$target" 2>/dev/null || true
-    return 0
-  else
-    print_error "Failed to push: $target"
-    return 1
-  fi
-}
-
 mirror_public_images() {
-  print_header "Mirroring Public Images"
+  print_header "Importing Public Images"
 
   local success_count=0
   local fail_count=0
@@ -250,16 +177,11 @@ mirror_public_images() {
   for name in "${!PUBLIC_IMAGES[@]}"; do
     local source="${PUBLIC_IMAGES[$name]}"
 
-    # Try ACR import first (faster and doesn't require local Docker)
-    if import_image_via_acr "$name" "$source"; then
+    # Import using az acr import (no Docker required)
+    if import_image_via_acr "$name" "$source" "false"; then
       ((success_count++))
     else
-      print_warning "ACR import failed, trying Docker method..."
-      if mirror_image_via_docker "$name" "$source"; then
-        ((success_count++))
-      else
-        ((fail_count++))
-      fi
+      ((fail_count++))
     fi
     echo ""
   done
@@ -269,11 +191,11 @@ mirror_public_images() {
 }
 
 mirror_private_images() {
-  print_header "Mirroring Private Images (Requires Wiz Credentials)"
+  print_header "Importing Private Images (Requires Wiz Credentials)"
 
   if [ -z "$WIZ_SENSOR_USERNAME" ] || [ -z "$WIZ_SENSOR_PASSWORD" ]; then
     print_warning "Skipping private images - credentials not provided"
-    print_info "To mirror sensor images:"
+    print_info "To import sensor images:"
     print_info "  1. Contact Wiz support for wizio.azurecr.io credentials"
     print_info "  2. Update WIZ_SENSOR_USERNAME and WIZ_SENSOR_PASSWORD in this script"
     print_info "  3. Re-run the script"
@@ -286,8 +208,8 @@ mirror_private_images() {
   for name in "${!PRIVATE_IMAGES[@]}"; do
     local source="${PRIVATE_IMAGES[$name]}"
 
-    # Private images must use Docker method (ACR import doesn't support auth)
-    if mirror_image_via_docker "$name" "$source"; then
+    # Import with Wiz credentials
+    if import_image_via_acr "$name" "$source" "true"; then
       ((success_count++))
     else
       ((fail_count++))
@@ -366,20 +288,21 @@ print_next_steps() {
 # ==============================================================================
 
 main() {
-  print_header "Wiz Images to ACR Migration Script"
+  print_header "Wiz Images to ACR Import Script (No Docker Required)"
   print_info "Target ACR: ${ACR_NAME}.azurecr.io"
   print_info "Target Prefix: ${TARGET_PREFIX}"
+  print_info "Method: az acr import (Azure CLI)"
 
   # Run checks and migrations
   check_prerequisites
-  login_to_registries
+  check_wiz_credentials
   mirror_public_images
   mirror_private_images
   verify_images
   print_next_steps
 
-  print_header "Migration Complete!"
-  print_success "All available images have been mirrored to your ACR"
+  print_header "Import Complete!"
+  print_success "All available images have been imported to your ACR"
 }
 
 # Run main function
