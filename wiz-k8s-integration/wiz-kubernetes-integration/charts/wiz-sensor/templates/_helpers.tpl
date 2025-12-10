@@ -129,11 +129,7 @@ Secrets
 {{- end }}
 
 {{- define "wiz-sensor.secretName" -}}
-{{- if .Values.apikey -}}
-{{- default (printf "%s-apikey" (include "wiz-sensor.fullname" .)) .Values.apikey.name }}
-{{- else -}}
-{{- coalesce .Values.global.wizApiToken.secret.name .Values.wizApiToken.secret.name .Values.wizApiToken.name (printf "%s-apikey" (include "wiz-sensor.fullname" .)) }}
-{{- end -}}
+{{- coalesce .Values.global.wizApiToken.secret.name .Values.wizApiToken.secret.name (printf "%s-apikey" (include "wiz-sensor.fullname" .)) }}
 {{- end }}
 
 {{- define "wiz-sensor.proxySecretName" -}}
@@ -145,15 +141,11 @@ Secrets
 {{- end }}
 
 {{/*
-TODO: Backward compatibility - remove
+Determine if API key secret should be created
 */}}
 {{- define "wiz-sensor.createSecret" -}}
 {{- if (or .Values.global.wizApiToken.wizApiTokensVolumeMount .Values.wizApiToken.wizApiTokensVolumeMount) }}
 false
-{{- else if .Values.apikey -}}
-{{- default true .Values.apikey.create -}}
-{{- else if (hasKey .Values.wizApiToken "createSecret") -}}
-{{- .Values.wizApiToken.createSecret -}}
 {{- else if (hasKey .Values.wizApiToken.secret "create") -}}
 {{- .Values.wizApiToken.secret.create -}}
 {{- else -}}
