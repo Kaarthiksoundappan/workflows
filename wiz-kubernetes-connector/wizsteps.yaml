@@ -1,7 +1,0 @@
-helm repo add wiz-sec https://charts.wiz.io
-helm repo update
-kubectl create namespace wiz
-kubectl -n wiz create secret generic wiz-api-token --from-literal clientId=akljbfuvwlucnlkseualxkhraukeryna --fromliteral clientToken=alkehfilucegnxakuhsmhnaf
-helm upgrade wiz-integration wiz-sec/wiz-kubernetes-integration --values values.yaml --create-nnamespace -n wiz --install
-
-#above commands are suggested to install wiz on AKS cluster.

@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(tar:*)"
-    ],
-    "deny": [],
-    "ask": []
-  }
-}
