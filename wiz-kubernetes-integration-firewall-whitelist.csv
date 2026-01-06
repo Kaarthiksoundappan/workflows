@@ -1,0 +1,19 @@
+URL/Domain,Port,Protocol,Purpose,Component,Deployment Phase,Required/Optional,Chart Version,Notes
+charts.wiz.io,443,HTTPS,Helm chart repository for downloading Wiz charts,Helm Chart Download,Deployment,Required,0.3.6,Primary Helm chart repository for wiz-kubernetes-integration umbrella chart
+wiz-sec.github.io,443,HTTPS,Legacy Helm chart repository,Helm Chart Download,Deployment,Required,0.3.6,Dependency charts still reference this URL in Chart.yaml
+wiziopublic.azurecr.io,443,HTTPS,Public Azure Container Registry for wiz-broker connector and admission-controller images,Container Image Pull,Deployment & Runtime,Required,0.3.6,"Registry: wiziopublic.azurecr.io/wiz-app - No authentication required"
+wizio.azurecr.io,443,HTTPS,Private Azure Container Registry for wiz-sensor images,Container Image Pull,Deployment & Runtime,Required,0.3.6,Requires image pull secret with username/password authentication
+wiziosensor.azurecr.io,443,HTTPS,Alternative sensor container registry,Container Image Pull,Deployment & Runtime,Optional,0.3.6,Alternative registry for sensor images
+registry.wiz.io,443,HTTPS,Wiz container registry endpoint,Container Image Pull,Deployment & Runtime,Optional,0.3.6,Additional registry option for Wiz images
+wizfedramp.azurecr.us,443,HTTPS,FedRamp-compliant Azure Container Registry for FIPS images,Container Image Pull (FedRamp),Deployment & Runtime,Required for FedRamp,0.3.6,Only required if isFedRamp: true or clientEndpoint: fedramp
+api.wiz.io,443,HTTPS,Wiz API endpoint for connector authentication and data transmission,Wiz API Communication,Runtime,Required,0.3.6,Primary API endpoint for wiz-kubernetes-connector to send cluster data
+*.wiz.io,443,HTTPS,Wildcard for all Wiz service endpoints and domains,Wiz API Communication,Runtime,Required,0.3.6,Covers all Wiz API endpoints including regional variations and service domains
+www.wiz.io,443,HTTPS,Wiz main website,Documentation & Support,All Phases,Optional,0.3.6,For accessing Wiz portal and documentation
+*.azurecr.io,443,HTTPS,Azure Container Registry wildcard (if using private ACR),Container Image Pull,Deployment,Optional,0.3.6,Only if hosting Wiz charts in private Azure Container Registry
+raw.githubusercontent.com,443,HTTPS,GitHub raw content for Helm installation scripts,Helm Installation,Deployment,Optional,0.3.6,Only if installing Helm via script
+github.com,443,HTTPS,GitHub repository access,Source Code & Documentation,Deployment,Optional,0.3.6,For accessing Wiz GitHub repositories
+kubernetes.github.io,443,HTTPS,Kubernetes Helm chart repository,Ingress Controller (if used),Deployment,Optional,0.3.6,Only if deploying nginx-ingress-controller alongside Wiz
+*.vault.azure.net,443,HTTPS,Azure Key Vault for secret management,Secret Management,Deployment,Optional,0.3.6,Only if using Azure Key Vault with External Secrets Operator
+docs.wiz.io,443,HTTPS,Wiz documentation portal,Documentation Access,All Phases,Optional,0.3.6,For integration guides and troubleshooting
+fluxcd.io,443,HTTPS,Flux CD documentation and installation,GitOps Deployment (if used),Deployment,Optional,0.3.6,Only if using Flux CD for GitOps-based deployment
+istio.io,443,HTTPS,Istio service mesh documentation,Service Mesh Integration,Deployment,Optional,0.3.6,Only if using Istio sidecar mode with Wiz components
