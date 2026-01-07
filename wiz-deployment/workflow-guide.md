@@ -150,109 +150,114 @@ flowchart LR
 ### GitHub Actions Job Flow
 
 ```mermaid
-flowchart TD
-    subgraph "Job 1: Prepare"
-        J1A[Checkout Repository] --> J1B[Analyze Trigger Type]
-        J1B --> J1C{Push Event?}
-        J1C -->|Yes| J1D[Parse Changed Files]
-        J1C -->|No| J1E[Parse Manual Inputs]
-        J1D --> J1F[Build Matrix from clusters.json]
-        J1E --> J1F
-        J1F --> J1G[Output: Deployment Matrix]
-    end
+flowchart LR
+    J1A[Checkout<br/>Repository] --> J1B[Analyze<br/>Trigger]
+    J1B --> J1C{Push<br/>Event?}
+    J1C -->|Yes| J1D[Parse<br/>Changed<br/>Files]
+    J1C -->|No| J1E[Parse<br/>Manual<br/>Inputs]
+    J1D --> J1F[Build<br/>Matrix]
+    J1E --> J1F
+    J1F --> J1G[Output<br/>Matrix]
 
-    subgraph "Job 2: Deploy (Parallel)"
-        J2A[Receive Matrix Item] --> J2B[Azure Login]
-        J2B --> J2C[Get AKS Credentials]
-        J2C --> J2D{Action Type Decision}
-        J2D --> J2E[Execute Action Steps]
-        J2E --> J2F[Verify Deployment]
-    end
+    J1G --> J2A[Receive<br/>Matrix]
+    J2A --> J2B[Azure<br/>Login]
+    J2B --> J2C[Get AKS<br/>Credentials]
+    J2C --> J2D{Action<br/>Type?}
+    J2D --> J2E[Execute<br/>Steps]
+    J2E --> J2F[Verify]
 
-    subgraph "Job 3: Summary"
-        J3A[Collect Job Results] --> J3B[Generate Summary Report]
-        J3B --> J3C[Create GitHub Summary]
-    end
+    J2F --> J3A[Collect<br/>Results]
+    J3A --> J3B[Generate<br/>Report]
+    J3B --> J3C[GitHub<br/>Summary]
 
-    J1G --> J2A
-    J2F --> J3A
-
-    classDef job1 fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
-    classDef job2 fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
-    classDef job3 fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
+    classDef job1 fill:#E3F2FD,stroke:#1976D2,stroke-width:3px,color:#000
+    classDef job2 fill:#F3E5F5,stroke:#7B1FA2,stroke-width:3px,color:#000
+    classDef job3 fill:#E8F5E9,stroke:#388E3C,stroke-width:3px,color:#000
 
     class J1A,J1B,J1C,J1D,J1E,J1F,J1G job1
     class J2A,J2B,J2C,J2D,J2E,J2F job2
     class J3A,J3B,J3C job3
 ```
 
+**Flow Explanation:**
+- 🔵 **Blue boxes** = Job 1 (Prepare) - Builds deployment matrix
+- 🟣 **Purple boxes** = Job 2 (Deploy) - Executes deployment in parallel
+- 🟢 **Green boxes** = Job 3 (Summary) - Generates report
+
 ### Flux Integration Architecture
 
 ```mermaid
-flowchart LR
-    subgraph GitHub["GitHub Repository"]
-        Config[clusters.json]
-        WizFiles[Portfolio/Env/Cluster/Wiz/<br/>- kustomization.yaml<br/>- repo.yaml<br/>- release.yaml]
-    end
+flowchart TD
+    %% GitHub Repository
+    Config[clusters.json]
+    WizFiles[Wiz Config Files]
 
-    subgraph Actions["GitHub Actions"]
-        Workflow[deploy-wiz.yml]
-        Secrets[GitHub Secrets:<br/>- AZURE_CREDENTIALS<br/>- ACR credentials<br/>- Wiz tokens]
-    end
+    %% GitHub Actions
+    Workflow[GitHub Actions<br/>deploy-wiz.yml]
+    Secrets[GitHub<br/>Secrets]
 
-    subgraph AKS["AKS Cluster"]
-        NS[wiz Namespace]
+    %% AKS Namespace
+    NS[wiz<br/>Namespace]
 
-        subgraph K8sSecrets["Kubernetes Secrets"]
-            ACRSec[acr-secret]
-            WizSec[wiz-api-token]
-        end
+    %% K8s Secrets
+    ACRSec[acr-secret]
+    WizSec[wiz-api-token]
 
-        subgraph FluxSystem["Flux System"]
-            FluxSource[GitRepository Source]
-            FluxKust[Kustomization: wiz]
-            HelmRepo[HelmRepository: wiz]
-            HelmRel[HelmRelease:<br/>wiz-kubernetes-integration]
-        end
+    %% Flux Resources
+    FluxSource[Git<br/>Source]
+    FluxKust[Flux<br/>Kustomization]
+    HelmRepo[Helm<br/>Repository]
+    HelmRel[Helm<br/>Release]
 
-        subgraph WizPods["Wiz Components"]
-            Connector[wiz-connector]
-            Sensor[wiz-sensor]
-            Admission[wiz-admission-controller]
-        end
-    end
+    %% Wiz Pods
+    Connector[wiz-connector<br/>Pod]
+    Sensor[wiz-sensor<br/>Pod]
+    Admission[wiz-admission-controller<br/>Pod]
 
+    %% Flow connections
     Config --> Workflow
-    WizFiles --> FluxSource
-    Workflow --> NS
     Secrets --> Workflow
+    WizFiles --> FluxSource
+
+    Workflow --> NS
     Workflow --> ACRSec
     Workflow --> WizSec
     Workflow --> FluxKust
+
     FluxSource --> FluxKust
     FluxKust --> HelmRepo
     FluxKust --> HelmRel
     HelmRepo --> HelmRel
+    ACRSec --> HelmRepo
+
     HelmRel --> Connector
     HelmRel --> Sensor
     HelmRel --> Admission
+
     WizSec --> Connector
     WizSec --> Sensor
     WizSec --> Admission
-    ACRSec --> HelmRepo
 
-    classDef github fill:#FFF3E0,stroke:#E65100,stroke-width:2px
-    classDef actions fill:#E1F5FE,stroke:#01579B,stroke-width:2px
-    classDef k8s fill:#F3E5F5,stroke:#4A148C,stroke-width:2px
-    classDef flux fill:#E8F5E9,stroke:#1B5E20,stroke-width:2px
-    classDef wiz fill:#FCE4EC,stroke:#880E4F,stroke-width:2px
+    %% Styling
+    classDef github fill:#FFF3E0,stroke:#E65100,stroke-width:3px,color:#000
+    classDef actions fill:#E1F5FE,stroke:#01579B,stroke-width:3px,color:#000
+    classDef k8s fill:#F3E5F5,stroke:#4A148C,stroke-width:3px,color:#000
+    classDef flux fill:#E8F5E9,stroke:#1B5E20,stroke-width:3px,color:#000
+    classDef wiz fill:#FCE4EC,stroke:#880E4F,stroke-width:3px,color:#000
 
     class Config,WizFiles github
     class Workflow,Secrets actions
-    class NS,K8sSecrets,ACRSec,WizSec k8s
-    class FluxSystem,FluxSource,FluxKust,HelmRepo,HelmRel flux
-    class WizPods,Connector,Sensor,Admission wiz
+    class NS,ACRSec,WizSec k8s
+    class FluxSource,FluxKust,HelmRepo,HelmRel flux
+    class Connector,Sensor,Admission wiz
 ```
+
+**Component Legend:**
+- 🟡 **Orange** = GitHub Repository (config & Wiz files)
+- 🔵 **Blue** = GitHub Actions (workflow & secrets)
+- 🟣 **Purple** = Kubernetes Secrets (ACR & Wiz tokens)
+- 🟢 **Green** = Flux Components (GitOps resources)
+- 🔴 **Pink** = Wiz Pods (deployed components)
 
 ---
 
