@@ -1,7 +1,7 @@
 URL/Domain,Port,Protocol,Purpose,Component,Deployment Phase,Required/Optional,Chart Version,Notes
 charts.wiz.io,443,HTTPS,Helm chart repository for downloading Wiz charts,Helm Chart Download,Deployment,Required,0.3.6,Primary Helm chart repository for wiz-kubernetes-integration umbrella chart
 wiz-sec.github.io,443,HTTPS,Legacy Helm chart repository,Helm Chart Download,Deployment,Required,0.3.6,Dependency charts still reference this URL in Chart.yaml
-wiziopublic.azurecr.io,443,HTTPS,Public Azure Container Registry for wiz-broker connector and admission-controller images,Container Image Pull,Deployment & Runtime,Required,0.3.6,"Registry: wiziopublic.azurecr.io/wiz-app - No authentication required"
+wiziopublic.azurecr.io,443,HTTPS,Public Azure Container Registry for wiz-broker connector and admission-controller images,Container Image Pull,Deployment & Runtime,Required,0.3.6,Registry: wiziopublic.azurecr.io/wiz-app - No authentication required
 wizio.azurecr.io,443,HTTPS,Private Azure Container Registry for wiz-sensor images,Container Image Pull,Deployment & Runtime,Required,0.3.6,Requires image pull secret with username/password authentication
 wiziosensor.azurecr.io,443,HTTPS,Alternative sensor container registry,Container Image Pull,Deployment & Runtime,Optional,0.3.6,Alternative registry for sensor images
 registry.wiz.io,443,HTTPS,Wiz container registry endpoint,Container Image Pull,Deployment & Runtime,Optional,0.3.6,Additional registry option for Wiz images
