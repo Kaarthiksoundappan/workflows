@@ -8,16 +8,17 @@ Automated deployment of Wiz Kubernetes Integration using GitHub Actions and Flux
 
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Prerequisites](#prerequisites)
-4. [Repository Structure](#repository-structure)
-5. [Configuration Files](#configuration-files)
-6. [GitHub Actions Workflow](#github-actions-workflow)
-7. [GitHub Secrets Setup](#github-secrets-setup)
-8. [Wiz Kubernetes Files](#wiz-kubernetes-files)
-9. [Usage Guide](#usage-guide)
-10. [Key Vault Integration (Optional)](#key-vault-integration-optional)
-11. [Troubleshooting](#troubleshooting)
-12. [Quick Start Checklist](#quick-start-checklist)
+3. [Workflow Flowchart](#workflow-flowchart)
+4. [Prerequisites](#prerequisites)
+5. [Repository Structure](#repository-structure)
+6. [Configuration Files](#configuration-files)
+7. [GitHub Actions Workflow](#github-actions-workflow)
+8. [GitHub Secrets Setup](#github-secrets-setup)
+9. [Wiz Kubernetes Files](#wiz-kubernetes-files)
+10. [Usage Guide](#usage-guide)
+11. [Key Vault Integration (Optional)](#key-vault-integration-optional)
+12. [Troubleshooting](#troubleshooting)
+13. [Quick Start Checklist](#quick-start-checklist)
 
 ---
 
@@ -106,6 +107,246 @@ Each Flux Kustomization operates independently:
 - Separate reconciliation cycles
 - Separate namespaces
 - No shared dependencies
+
+---
+
+## Workflow Flowchart
+
+### Complete Deployment Flow
+
+```mermaid
+flowchart TD
+    Start([Deployment Triggered]) --> TriggerCheck{Trigger Type?}
+
+    %% Manual Trigger Path
+    TriggerCheck -->|Manual Dispatch| ManualInputs[Collect User Inputs:<br/>- Portfolio<br/>- Environment<br/>- Cluster<br/>- Action]
+    ManualInputs --> FilterClusters[Filter clusters.json<br/>based on inputs]
+
+    %% Auto Trigger Path
+    TriggerCheck -->|Git Push to **/Wiz/**| DetectChanges[Analyze Changed Files<br/>in Wiz folders]
+    DetectChanges --> ExtractPath[Extract Portfolio,<br/>Environment, Cluster<br/>from file paths]
+    ExtractPath --> MatchConfig[Match with<br/>clusters.json]
+
+    %% Merge Paths
+    FilterClusters --> BuildMatrix[Build Deployment Matrix]
+    MatchConfig --> BuildMatrix
+
+    BuildMatrix --> MatrixCheck{Matrix Empty?}
+    MatrixCheck -->|Yes| NoTargets[No deployment targets<br/>Workflow ends]
+    MatrixCheck -->|No| DisplayTargets[Display Deployment Targets]
+
+    DisplayTargets --> ParallelDeploy{For Each Cluster<br/>in Matrix}
+
+    %% Parallel Deployment Loop
+    ParallelDeploy --> ClusterInfo[Display Cluster Info:<br/>- Portfolio<br/>- Environment<br/>- Resource Group]
+
+    ClusterInfo --> AzureLogin[Azure Login with<br/>Service Principal]
+    AzureLogin --> SetSubscription[Set Azure Subscription]
+    SetSubscription --> GetAKSCreds[Get AKS Credentials<br/>kubectl config]
+
+    GetAKSCreds --> ActionCheck{Action Type?}
+
+    %% Dry Run Path
+    ActionCheck -->|dry-run| DryRunPreview[Preview Actions:<br/>- Namespace creation<br/>- Secret creation<br/>- Flux setup]
+    DryRunPreview --> ShowCurrentState[Show Current State:<br/>- Namespaces<br/>- Flux configs]
+    ShowCurrentState --> VerifyDeploy
+
+    %% Secrets Only Path
+    ActionCheck -->|secrets-only| CreateNamespace[Create wiz Namespace]
+    CreateNamespace --> CreateACRSecret[Create ACR Secret<br/>docker-registry type]
+    CreateACRSecret --> ValidateWizCreds{Wiz Credentials<br/>Found?}
+    ValidateWizCreds -->|No| ErrorMissingCreds[Error: Missing Wiz<br/>credentials for prefix]
+    ValidateWizCreds -->|Yes| CreateWizSecret[Create wiz-api-token<br/>Secret with clientId<br/>and clientToken]
+    CreateWizSecret --> VerifyDeploy
+
+    %% Flux Only Path
+    ActionCheck -->|flux-only| CheckFluxExists{Flux Config<br/>Exists?}
+    CheckFluxExists -->|Yes| UpdateFlux[Update Existing<br/>Flux Configuration]
+    CheckFluxExists -->|No| CreateFlux[Create New Flux<br/>Configuration:<br/>- Source: GitHub repo<br/>- Path: Portfolio/Env/Cluster/Wiz]
+    UpdateFlux --> VerifyDeploy
+    CreateFlux --> VerifyDeploy
+
+    %% Full Deploy Path
+    ActionCheck -->|deploy| FullDeployNS[Create wiz Namespace]
+    FullDeployNS --> FullDeployACR[Create ACR Secret]
+    FullDeployACR --> ValidateFullWizCreds{Wiz Credentials<br/>Found?}
+    ValidateFullWizCreds -->|No| ErrorMissingFullCreds[Error: Missing Wiz<br/>credentials]
+    ValidateFullWizCreds -->|Yes| FullDeployWizSecret[Create wiz-api-token<br/>Secret]
+    FullDeployWizSecret --> CheckFluxExistsFull{Flux Config<br/>Exists?}
+    CheckFluxExistsFull -->|Yes| UpdateFluxFull[Update Flux<br/>Configuration]
+    CheckFluxExistsFull -->|No| CreateFluxFull[Create Flux<br/>Configuration]
+    UpdateFluxFull --> VerifyDeploy
+    CreateFluxFull --> VerifyDeploy
+
+    %% Verification
+    VerifyDeploy[Verify Deployment:<br/>- List secrets in wiz namespace<br/>- List Flux configurations<br/>- List Kustomizations]
+
+    VerifyDeploy --> DeployComplete{More Clusters<br/>in Matrix?}
+    DeployComplete -->|Yes| ParallelDeploy
+    DeployComplete -->|No| GenerateSummary
+
+    %% Summary
+    GenerateSummary[Generate Summary Report:<br/>- Trigger info<br/>- Input parameters<br/>- Job results]
+
+    GenerateSummary --> End([Deployment Complete])
+
+    ErrorMissingCreds --> End
+    ErrorMissingFullCreds --> End
+    NoTargets --> End
+
+    %% Styling
+    classDef startEnd fill:#4CAF50,stroke:#2E7D32,color:#fff,stroke-width:3px
+    classDef decision fill:#FF9800,stroke:#E65100,color:#fff,stroke-width:2px
+    classDef process fill:#2196F3,stroke:#0D47A1,color:#fff,stroke-width:2px
+    classDef error fill:#F44336,stroke:#B71C1C,color:#fff,stroke-width:2px
+    classDef verify fill:#9C27B0,stroke:#4A148C,color:#fff,stroke-width:2px
+
+    class Start,End startEnd
+    class TriggerCheck,MatrixCheck,ActionCheck,ValidateWizCreds,ValidateFullWizCreds,CheckFluxExists,CheckFluxExistsFull,DeployComplete decision
+    class ManualInputs,FilterClusters,DetectChanges,ExtractPath,MatchConfig,BuildMatrix,AzureLogin,SetSubscription,GetAKSCreds,CreateNamespace,CreateACRSecret,CreateWizSecret,UpdateFlux,CreateFlux,FullDeployNS,FullDeployACR,FullDeployWizSecret,UpdateFluxFull,CreateFluxFull process
+    class ErrorMissingCreds,ErrorMissingFullCreds error
+    class VerifyDeploy,GenerateSummary verify
+```
+
+### Simplified Decision Flow
+
+```mermaid
+flowchart LR
+    A[Trigger] --> B{Type?}
+    B -->|Manual| C[User Selects:<br/>Portfolio/Env/Cluster]
+    B -->|Auto Push| D[Detect Changed<br/>Wiz Folders]
+    C --> E[clusters.json]
+    D --> E
+    E --> F{Action?}
+    F -->|deploy| G[Secrets + Flux]
+    F -->|secrets-only| H[Secrets Only]
+    F -->|flux-only| I[Flux Only]
+    F -->|dry-run| J[Preview Only]
+    G --> K[Deploy to AKS]
+    H --> K
+    I --> K
+    J --> L[Show Preview]
+    K --> M[Verify]
+    L --> M
+    M --> N[Summary Report]
+
+    classDef trigger fill:#4CAF50,stroke:#2E7D32,color:#fff
+    classDef decision fill:#FF9800,stroke:#E65100,color:#fff
+    classDef action fill:#2196F3,stroke:#0D47A1,color:#fff
+    classDef final fill:#9C27B0,stroke:#4A148C,color:#fff
+
+    class A trigger
+    class B,F decision
+    class C,D,E,G,H,I,J,K,L action
+    class M,N final
+```
+
+### GitHub Actions Job Flow
+
+```mermaid
+flowchart TD
+    subgraph "Job 1: Prepare"
+        J1A[Checkout Repository] --> J1B[Analyze Trigger Type]
+        J1B --> J1C{Push Event?}
+        J1C -->|Yes| J1D[Parse Changed Files]
+        J1C -->|No| J1E[Parse Manual Inputs]
+        J1D --> J1F[Build Matrix from clusters.json]
+        J1E --> J1F
+        J1F --> J1G[Output: Deployment Matrix]
+    end
+
+    subgraph "Job 2: Deploy (Parallel)"
+        J2A[Receive Matrix Item] --> J2B[Azure Login]
+        J2B --> J2C[Get AKS Credentials]
+        J2C --> J2D{Action Type Decision}
+        J2D --> J2E[Execute Action Steps]
+        J2E --> J2F[Verify Deployment]
+    end
+
+    subgraph "Job 3: Summary"
+        J3A[Collect Job Results] --> J3B[Generate Summary Report]
+        J3B --> J3C[Create GitHub Summary]
+    end
+
+    J1G --> J2A
+    J2F --> J3A
+
+    classDef job1 fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    classDef job2 fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
+    classDef job3 fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
+
+    class J1A,J1B,J1C,J1D,J1E,J1F,J1G job1
+    class J2A,J2B,J2C,J2D,J2E,J2F job2
+    class J3A,J3B,J3C job3
+```
+
+### Flux Integration Architecture
+
+```mermaid
+flowchart LR
+    subgraph GitHub["GitHub Repository"]
+        Config[clusters.json]
+        WizFiles[Portfolio/Env/Cluster/Wiz/<br/>- kustomization.yaml<br/>- repo.yaml<br/>- release.yaml]
+    end
+
+    subgraph Actions["GitHub Actions"]
+        Workflow[deploy-wiz.yml]
+        Secrets[GitHub Secrets:<br/>- AZURE_CREDENTIALS<br/>- ACR credentials<br/>- Wiz tokens]
+    end
+
+    subgraph AKS["AKS Cluster"]
+        NS[wiz Namespace]
+
+        subgraph K8sSecrets["Kubernetes Secrets"]
+            ACRSec[acr-secret]
+            WizSec[wiz-api-token]
+        end
+
+        subgraph FluxSystem["Flux System"]
+            FluxSource[GitRepository Source]
+            FluxKust[Kustomization: wiz]
+            HelmRepo[HelmRepository: wiz]
+            HelmRel[HelmRelease:<br/>wiz-kubernetes-integration]
+        end
+
+        subgraph WizPods["Wiz Components"]
+            Connector[wiz-connector]
+            Sensor[wiz-sensor]
+            Admission[wiz-admission-controller]
+        end
+    end
+
+    Config --> Workflow
+    WizFiles --> FluxSource
+    Workflow --> NS
+    Secrets --> Workflow
+    Workflow --> ACRSec
+    Workflow --> WizSec
+    Workflow --> FluxKust
+    FluxSource --> FluxKust
+    FluxKust --> HelmRepo
+    FluxKust --> HelmRel
+    HelmRepo --> HelmRel
+    HelmRel --> Connector
+    HelmRel --> Sensor
+    HelmRel --> Admission
+    WizSec --> Connector
+    WizSec --> Sensor
+    WizSec --> Admission
+    ACRSec --> HelmRepo
+
+    classDef github fill:#FFF3E0,stroke:#E65100,stroke-width:2px
+    classDef actions fill:#E1F5FE,stroke:#01579B,stroke-width:2px
+    classDef k8s fill:#F3E5F5,stroke:#4A148C,stroke-width:2px
+    classDef flux fill:#E8F5E9,stroke:#1B5E20,stroke-width:2px
+    classDef wiz fill:#FCE4EC,stroke:#880E4F,stroke-width:2px
+
+    class Config,WizFiles github
+    class Workflow,Secrets actions
+    class NS,K8sSecrets,ACRSec,WizSec k8s
+    class FluxSystem,FluxSource,FluxKust,HelmRepo,HelmRel flux
+    class WizPods,Connector,Sensor,Admission wiz
+```
 
 ---
 
